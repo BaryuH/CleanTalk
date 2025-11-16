@@ -6,7 +6,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import Normalizer
 from sklearn.multioutput import MultiOutputClassifier
 from sklearn.svm import LinearSVC
-os.chdir('C:/GIAHUY/CleanTalk')
+os.chdir('.')
 EMB_PATH = './data/embeddings/train.npy'
 RAW_PATH = './data/raw/train.csv'
 TEST_PATH = './data/raw/test2.csv'
