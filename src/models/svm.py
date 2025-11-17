@@ -9,8 +9,8 @@ from sklearn.svm import LinearSVC
 os.chdir('.')
 EMB_PATH = './data/embeddings/train.npy'
 RAW_PATH = './data/raw/train.csv'
-TEST_PATH = './data/raw/test2.csv'
-RES_PATH = './data/raw/submit.csv'
+TEST_PATH = './data/output/test2.csv'
+RES_PATH = './data/output/submit.csv'
 MODEL_NAME = 'sentence-transformers/all-distilroberta-v1'
 
 LABEL_COLS = ["toxic", "severe_toxic", "obscene",
