@@ -4,15 +4,19 @@ import joblib
 from sentence_transformers import SentenceTransformer
 
 os.chdir('.')
+print(os.getcwd())
 
-LABELS = ["toxic", "severe_toxic", "obscene", "threat", "insult", "identity_hate"]
-
+LABELS = ["toxic", "severe_toxic", "obscene",
+          "threat", "insult", "identity_hate"]
+MODEL_PATH = './data/output/svm_model.pkl'
+MODEL_NAME = 'sentence-transformers/all-distilroberta-v1'
 weights = {}
 for power, col in enumerate(reversed(LABELS), start=1):
     weights[col] = 2 ** power
 
 threshold_warning = 10
 threshold_ban = 50
+
 
 def compute_points(pred_vector):
     total = 0
@@ -21,6 +25,7 @@ def compute_points(pred_vector):
             total += weights[label]
     return total
 
+
 def classify(points):
     if points >= threshold_ban:
         return "ban"
@@ -28,15 +33,12 @@ def classify(points):
         return "warning"
     else:
         return "safe"
-    
+
 
 def main():
-    EMBEDDING_MODEL_NAME = "sentence-transformers/all-distilroberta-v1"
-    SVM_MODEL_PATH = "svm_model.pkl"  
-
     print("Loading embedding model and SVM model...")
-    encoder = SentenceTransformer(EMBEDDING_MODEL_NAME)
-    svm_model = joblib.load(SVM_MODEL_PATH)
+    encoder = SentenceTransformer(MODEL_NAME)
+    svm_model = joblib.load(MODEL_PATH)['svm']
     print("Loaded successfully!\n")
 
     print("Nhập câu tiếng Anh để kiểm tra toxicity.")
@@ -55,7 +57,7 @@ def main():
         emb = encoder.encode([text])
 
         y_pred = svm_model.predict(emb)
-        y_pred = np.array(y_pred)[0]     
+        y_pred = np.array(y_pred)[0]
 
         points = compute_points(y_pred)
         final_label = classify(points)
