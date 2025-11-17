@@ -6,11 +6,14 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import Normalizer
 from sklearn.multioutput import MultiOutputClassifier
 from sklearn.svm import LinearSVC
+import pickle
+
 os.chdir('.')
 EMB_PATH = './data/embeddings/train.npy'
 RAW_PATH = './data/raw/train.csv'
-TEST_PATH = './data/output/test2.csv'
+TEST_PATH = './data/raw/test2.csv'
 RES_PATH = './data/output/submit.csv'
+MODEL_PATH = './data/output/svm_model.pkl'
 MODEL_NAME = 'sentence-transformers/all-distilroberta-v1'
 
 LABEL_COLS = ["toxic", "severe_toxic", "obscene",
@@ -62,6 +65,13 @@ class Trainer:
         self.svm = MultiOutputClassifier(
             LinearSVC(C=C_PARAM, max_iter=MAX_ITER, class_weight=CLASS_WEIGHT), n_jobs=-1)
         self.svm.fit(self.X_train, self.y_train)
+        model_data = {
+            'svm': self.svm,
+            'normalizer': self.normalizer
+        }
+        with open(MODEL_PATH, 'wb') as f:
+            pickle.dump(model_data, f)
+        print(f"Model saved to {MODEL_PATH}")
 
     def run(self):
         X, y = self.load_data()
