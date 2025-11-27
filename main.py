@@ -72,7 +72,7 @@ def preprocess(text: str) -> str:
 
 def classify(points, pred_vector):
 
-    toxic, obscene, insult, severe_toxic, identity_hate, threat = pred_vector
+    toxic, severe_toxic, obscene,  threat,  insult,  identity_hate, = pred_vector
 
     light_count = int(toxic) + int(obscene) + int(insult)
     heavy_count = int(severe_toxic) + int(identity_hate) + int(threat)
