@@ -11,14 +11,22 @@ print(os.getcwd())
 
 LABELS = ["toxic", "severe_toxic", "obscene",
           "threat", "insult", "identity_hate"]
+
 MODEL_PATH = './data/output/svm_model.pkl'
 MODEL_NAME = 'sentence-transformers/all-distilroberta-v1'
-weights = {}
-for power, col in enumerate(reversed(LABELS), start=1):
-    weights[col] = 2 ** power
 
-threshold_warning = 10
-threshold_ban = 50
+
+weights = {
+    "toxic": 1,
+    "obscene": 1,
+    "insult": 1,
+    "severe_toxic": 3,
+    "identity_hate": 3,
+    "threat": 4
+}
+
+SAFE_MAX = 2
+WARNING_MAX = 4
 
 
 def compute_points(pred_vector):
@@ -27,6 +35,7 @@ def compute_points(pred_vector):
         if value == 1:
             total += weights[label]
     return total
+
 
 def preprocess(text: str) -> str:
     text = text.lower()
@@ -41,6 +50,8 @@ def preprocess(text: str) -> str:
     text = re.sub(r"@\w+", "<USER>", text)
     text = re.sub(r"\b\d{1,3}(?:\.\d{1,3}){3}\b", "<IP>", text)
     text = re.sub(r'([!?.,;:\"\'])\1+', r'\1', text)
+    text = re.sub(r"([A-Za-z])\1{2,}", r"\1", text)
+    text = re.sub(r"([A-Za-z])\1{1}", r"\1\1", text)
     time_pattern = re.compile(
         r"""
         (?:
@@ -58,13 +69,31 @@ def preprocess(text: str) -> str:
     text = re.sub(r"\"\s+", "", text)
     return text.strip()
 
-def classify(points):
-    if points >= threshold_ban:
+
+def classify(points, pred_vector):
+
+    toxic, severe_toxic, obscene,  threat,  insult,  identity_hate, = pred_vector
+
+    light_count = int(toxic) + int(obscene) + int(insult)
+    heavy_count = int(severe_toxic) + int(identity_hate) + int(threat)
+    total_on = light_count + heavy_count
+
+    if total_on == 3:
+        if heavy_count == 1 and light_count == 2:
+            return "warning"
+        if heavy_count == 2 and light_count == 1:
+            return "ban"
+
+    if threat == 1:
         return "ban"
-    elif points >= threshold_warning:
-        return "warning"
-    else:
+
+    if points <= SAFE_MAX:
         return "safe"
+
+    if points <= WARNING_MAX:
+        return "warning"
+
+    return "ban"
 
 
 def main():
@@ -78,6 +107,7 @@ def main():
 
     while True:
         text = input(">> Enter comment: ").strip()
+
         if text.lower() in ["quit", "exit", "q"]:
             print("Bye!")
             break
@@ -86,17 +116,18 @@ def main():
             print("Empty input, thử lại.\n")
             continue
 
-        text = preprocess(text)
-        emb = encoder.encode([text])
+        text_proc = preprocess(text)
+        emb = encoder.encode([text_proc])
 
         y_pred = svm_model.predict(emb)
         y_pred = np.array(y_pred)[0]
 
         points = compute_points(y_pred)
-        final_label = classify(points)
+        final_label = classify(points, y_pred)
 
         print("\n===== RESULT =====")
-        print(f"Comment: {text}")
+        print(f"Original: {text}")
+        print(f"Preproc : {text_proc}")
         print("Labels (0 = no, 1 = yes):")
         for label, value in zip(LABELS, y_pred):
             print(f"  {label:13s}: {int(value)}")
