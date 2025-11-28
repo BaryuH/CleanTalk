@@ -13,7 +13,12 @@ print(os.getcwd())
 LABELS = ["toxic", "severe_toxic", "obscene",
           "threat", "insult", "identity_hate"]
 
-MODEL_PATH = './data/output/svm_model3.pkl'
+MODEL_PATH = './data/output/svm_model.pkl'
+MODEL_NAME = 'sentence-transformers/all-distilroberta-v1'
+
+
+
+MODEL_PATH = './data/output/svm_model.pkl'
 MODEL_NAME = 'sentence-transformers/all-distilroberta-v1'
 
 
