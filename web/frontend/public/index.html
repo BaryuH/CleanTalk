@@ -1,0 +1,236 @@
+<!-- frontend/public/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CleanTalk - AI Toxicity Checker</title>
+
+    <!-- Basic meta -->
+    <meta name="description" content="CleanTalk is an AI-powered tool that analyzes English text and highlights its toxicity level.">
+    <meta name="color-scheme" content="dark light">
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="../src/css/style.css">
+</head>
+<body>
+    <!-- Hologram Background Container (purely decorative) -->
+    <div class="hologram-background" aria-hidden="true">
+        <!-- Outer halo - slow rotation -->
+        <div class="halo halo-outer"></div>
+        <!-- Inner halo - reverse rotation -->
+        <div class="halo halo-inner"></div>
+        <!-- Ambient glow layers -->
+        <div class="glow-layer glow-1"></div>
+        <div class="glow-layer glow-2"></div>
+        <div class="glow-layer glow-3"></div>
+    </div>
+
+    <!-- Floating Particles (decorative only) -->
+    <div class="particles-container" aria-hidden="true">
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+    </div>
+
+    <!-- Main App Shell -->
+    <div class="main-container">
+        <!-- Header -->
+        <header class="header" role="banner">
+            <div class="header-left">
+                <div class="logo-glow" aria-hidden="true">
+                </div>
+                <div class="header-text">
+                    <h1 class="app-title">CleanTalk</h1>
+                    <p class="app-subtitle">AI Toxicity Detector</p>
+                </div>
+            </div>
+
+            <div class="header-right">
+                <a href="https://github.com"
+                   class="github-btn"
+                   target="_blank"
+                   rel="noreferrer"
+                   title="Open GitHub (placeholder)">
+                    <svg width="20" height="20" viewBox="0 0 24 24"
+                         aria-hidden="true" focusable="false"
+                         fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V21"></path>
+                    </svg>
+                </a>
+
+                <button class="theme-toggle"
+                        id="themeToggle"
+                        type="button"
+                        title="Toggle Dark/Light Mode"
+                        aria-label="Toggle Dark or Light theme">
+                    <svg class="sun-icon" width="20" height="20" viewBox="0 0 24 24"
+                         aria-hidden="true" focusable="false"
+                         fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                    <svg class="moon-icon" width="20" height="20" viewBox="0 0 24 24"
+                         aria-hidden="true" focusable="false"
+                         fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="content-wrapper" role="main">
+
+            <!-- Input Panel -->
+            <section class="panel input-panel" aria-labelledby="input-panel-title">
+                <div class="panel-header">
+                    <h2 class="panel-title" id="input-panel-title">Analyze Text</h2>
+                    <p class="panel-subtitle">Enter your text for toxicity analysis.</p>
+                </div>
+
+                <div class="form-container">
+                    <div class="textarea-wrapper">
+                        <label for="textInput" class="textarea-label">
+                            Comment
+                        </label>
+
+                        <div class="textarea-shell">
+                            <textarea
+                                id="textInput"
+                                class="input-textarea"
+                                placeholder="Type or paste your text here..."
+                                maxlength="256"
+                                autocomplete="off"
+                                spellcheck="false"
+                                aria-label="Text to analyze for toxicity"></textarea>
+                            <div class="textarea-accent" aria-hidden="true"></div>
+                        </div>
+                    </div>
+
+                    <!-- SAMPLE COMMENTS PANEL -->
+                    <div class="sample-panel"
+                         style="margin-top:14px; padding:14px; border:1px solid var(--border-color);
+                                border-radius:10px; background:var(--glass-bg); backdrop-filter:blur(6px);">
+                        <div style="font-weight:600; margin-bottom:8px; font-size:14px; color:var(--text-primary);">
+                            Sample Comments
+                        </div>
+
+                        <div class="sample-list" style="display:flex; flex-direction:column; gap:8px;">
+                            <button class="sample-btn" data-text="Thanks for your help, I appreciate it." type="button">
+                                SAFE – Thanks for your help, I appreciate it.
+                            </button>
+                            <button class="sample-btn" data-text="I am better than you in CS Math" type="button">
+                                SAFE - I am better than you in CS Math.
+                            </button>
+                            <button class="sample-btn" data-text="Bro your argument makes zero sense." type="button">
+                                WARNING - Bro your argument makes zero sense.
+                            </button>
+                            <button class="sample-btn" data-text="You sound aggressive for no reason." type="button">
+                                WARNING - You sound aggressive for no reason.
+                            </button>
+                            <button class="sample-btn" data-text="I hate you and people like you shouldn't exist." type="button">
+                                BAN - I hate you and people like you shouldn't exist.
+                            </button>
+                            <button class="sample-btn" data-text="Fuck you nigga." type="button">
+                                BAN - Fuck you nigga.
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="input-footer">
+                        <div class="char-counter" aria-live="polite">
+                            <span id="charCount">0</span>
+                            <span class="char-total">/ 256</span>
+                        </div>
+                        <p class="input-hint">🔒 Do not enter sensitive personal data.</p>
+                    </div>
+
+                    <button class="analyze-btn" id="analyzeBtn" type="button">
+                        <span class="btn-text">Analyze Toxicity</span>
+                        <span class="btn-loader hidden" aria-hidden="true">
+                            <span class="spinner"></span>
+                        </span>
+                    </button>
+                </div>
+            </section>
+
+            <!-- Result Panel -->
+            <section class="panel result-panel" aria-labelledby="result-panel-title">
+                <div class="panel-header">
+                    <h2 class="panel-title" id="result-panel-title">Results</h2>
+                    <p class="panel-subtitle">Toxicity analysis results.</p>
+                </div>
+
+                <div class="result-container">
+
+                    <!-- Empty State -->
+                    <div class="result-state empty-state" id="emptyState">
+                        <div class="state-icon">🔍</div>
+                        <h3>No analysis yet</h3>
+                        <p>Enter text on the left to get started.</p>
+                    </div>
+
+                    <!-- Loading State -->
+                    <div class="result-state loading-state hidden" id="loadingState">
+                        <div class="state-spinner"></div>
+                        <p>Analyzing...</p>
+                    </div>
+                    <!-- Error State -->
+                    <div class="result-state error-state hidden" id="errorState">
+                        <div class="state-icon">⚠️</div>
+                        <h3>Something went wrong</h3>
+                        <p id="errorMessage">Unable to analyze text. Please try again.</p>
+                        <button class="retry-btn" id="retryBtn" type="button">Try Again</button>
+                    </div>
+
+                    <!-- Result Content -->
+                    <div class="result-content hidden" id="resultContent" aria-live="polite">
+
+                        <!-- NEW: Result Illustration -->
+                        <div id="resultImageWrapper" class="result-image-wrapper hidden">
+                            <img id="resultImage" class="result-image" src="" alt="result illustration">
+                        </div>
+
+                        <!-- Final Label Badge -->
+                        <div class="result-badge" id="resultBadge">
+                            <div class="badge-label" id="badgeLabel">SAFE</div>
+                            <div class="badge-description" id="badgeDescription">
+                                This comment looks fine.
+                            </div>
+                        </div>
+
+                        <!-- Detected Issues -->
+                        <div class="issues-section" id="issuesSection">
+                            <div class="issues-label">Detected issues</div>
+                            <div class="chips-container" id="chipsContainer"></div>
+                        </div>
+
+                        <!-- No Issues Message -->
+                        <div class="no-issues-message hidden" id="noIssuesMessage">
+                            No toxic traits detected.
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+    </div>
+
+    <!-- App script -->
+    <script src="../src/js/main.js"></script>
+</body>
+</html>
