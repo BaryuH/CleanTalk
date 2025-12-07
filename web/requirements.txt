@@ -1,7 +1,6 @@
 fastapi
-uvicorn[standard]
+uvicorn
 pydantic>=1.10,<2.0
-pydantic-settings
 python-dotenv
 scikit-learn
 numpy
