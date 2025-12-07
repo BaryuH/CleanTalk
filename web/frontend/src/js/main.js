@@ -1,4 +1,6 @@
 const TOXICITY_API_URL = "/api/v1/CleanTalk1";
+//const TOXICITY_API_URL = "http://localhost:8000/api/v1/CleanTalk1";
+
 
 
 const LABEL_IMAGES = {
