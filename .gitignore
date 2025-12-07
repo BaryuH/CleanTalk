@@ -1,0 +1,65 @@
+############################################
+# PYTHON CACHE & BYTECODE
+############################################
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.sqlite3
+*.log
+
+############################################
+# VIRTUAL ENVIRONMENT
+############################################
+venv/
+.env/
+.env.local
+.env.development
+.env.production
+
+############################################
+# OPERATING SYSTEM FILES
+############################################
+.DS_Store
+Thumbs.db
+
+############################################
+# IDE / EDITOR SETTINGS
+############################################
+.vscode/
+.idea/
+*.swp
+
+############################################
+# FRONTEND BUILD & NODE CACHE 
+############################################
+node_modules/
+dist/
+build/
+
+############################################
+# DOCKER ARTIFACTS
+############################################
+*.tar
+docker-data/
+
+############################################
+# MACHINE LEARNING / EMBEDDING CACHE
+############################################
+# Sentence-Transformers / HuggingFace cache
+models_store/embeddings/
+backend/models_store/embeddings/
+**/.locks/
+.cache/
+.huggingface/
+
+############################################
+# TEMPORARY & BACKUP FILES
+############################################
+*.tmp
+*.bak
+*.old
+
+############################################
+# PROJECT-SPECIFIC NON-SOURCE FILES
+############################################
