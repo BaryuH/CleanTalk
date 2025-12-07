@@ -224,7 +224,16 @@ class ToxicityAnalyzer {
     }
   }
 }
+function preloadImages(urls) {
+  urls.forEach((url) => {
+    const img = new Image();
+    img.src = url;
+  });
+}
 
+window.addEventListener("DOMContentLoaded", () => {
+  preloadImages(Object.values(IMAGE_MAP));
+});
 document.addEventListener("DOMContentLoaded", () => {
   new ThemeManager();
   new CharacterCounter();
