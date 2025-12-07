@@ -1,0 +1,8 @@
+FROM nginx:alpine
+
+RUN rm /etc/nginx/conf.d/default.conf
+
+COPY web/frontend/public /usr/share/nginx/html
+COPY web/frontend/src /usr/share/nginx/html/src
+
+COPY web/deploy/nginx.conf /etc/nginx/conf.d/cleantalk.conf
