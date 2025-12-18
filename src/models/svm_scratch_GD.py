@@ -6,24 +6,30 @@ import pickle
 from sentence_transformers import SentenceTransformer
 from sklearn.preprocessing import Normalizer
 from scipy.special import expit
+from pathlib import Path
 
-os.chdir('..')
 
-EMB_PATH = "./data/embeddings/train.npy"
+ROOT = Path(__file__).resolve().parents[2]
+os.chdir(ROOT)
+
+TRAIN_EMB_PATH = "./data/embeddings/train.npy"
 RAW_PATH = "./data/processed/train.csv"
-TEST_PATH = "./data/processed/test.csv"
-SUBMIT_PATH = "./data/output/submit_scratch_GD.csv"
-MODEL_FILE = "./data/output/svm_model_GD.pkl"
+TEST_PATH = "./data/processed/test2.csv"
+TEST_EMB_PATH = "./data/embeddings/test.npy"
+RES_PATH = "./data/output/submit_GD.csv"
+MODEL_PATH = "./data/output/svm_gd_model.pkl"
+
 MODEL_NAME = "sentence-transformers/all-distilroberta-v1"
-LABEL_COLS = ["toxic", "severe_toxic", "obscene",
-              "threat", "insult", "identity_hate"]
+LABEL_COLS = ["toxic", "severe_toxic", "obscene", "threat", "insult", "identity_hate"]
+
+BATCH_SIZE = 128
 
 
 class SVM_classifier:
     def __init__(
         self,
-        learning_rate=1e-3,
-        no_of_epochs=10,
+        learning_rate=5e-5,
+        no_of_epochs=30,
         lambda_parameter=1e-4,
         batch_size=512,
         shuffle=True,
@@ -42,7 +48,6 @@ class SVM_classifier:
         self.n = None
 
     def fit(self, X, Y):
-
         X = np.asarray(X, dtype=np.float32)
         Y = np.asarray(Y).ravel()
 
@@ -97,9 +102,8 @@ class SVM_classifier:
 
                     sw_sum = np.sum(sw_batch)
 
-                    grad_w_hinge = - \
-                        (X_mis.T @ (sw_mis * y_mis)) / max(sw_sum, 1e-8)
-                    grad_b_hinge = - np.sum(sw_mis * y_mis) / max(sw_sum, 1e-8)
+                    grad_w_hinge = -(X_mis.T @ (sw_mis * y_mis)) / max(sw_sum, 1e-8)
+                    grad_b_hinge = -np.sum(sw_mis * y_mis) / max(sw_sum, 1e-8)
 
                     grad_w = self.lambda_parameter * self.w + grad_w_hinge
                     grad_b = grad_b_hinge
@@ -126,8 +130,8 @@ class Trainer:
         self.models = {}
 
     def load_data(self):
-        print(f"Loading embeddings from {EMB_PATH}")
-        emb_data = np.load(EMB_PATH, allow_pickle=True)
+        print(f"Loading embeddings from {TRAIN_EMB_PATH}")
+        emb_data = np.load(TRAIN_EMB_PATH, allow_pickle=True)
         ids = emb_data[:, 0].astype(str)
         X_full = emb_data[:, 1:].astype(np.float32)
 
@@ -135,8 +139,7 @@ class Trainer:
         print(f"Loaded raw train from {RAW_PATH}, shape = {raw_data.shape}")
 
         df_emb = pd.DataFrame({"id": ids, "emb_idx": np.arange(len(ids))})
-        df_merged = raw_data[["id"] +
-                             LABEL_COLS].merge(df_emb, on="id", how="inner")
+        df_merged = raw_data[["id"] + LABEL_COLS].merge(df_emb, on="id", how="inner")
 
         matched_indices = df_merged["emb_idx"].values
         X = X_full[matched_indices]
@@ -159,10 +162,10 @@ class Trainer:
             y = y_df[col].values
 
             model = SVM_classifier(
-                learning_rate=1e-4,
-                no_of_epochs=20,
+                learning_rate=5e-5,
+                no_of_epochs=50,
                 lambda_parameter=1e-4,
-                batch_size=512,
+                batch_size=1024,
                 shuffle=True,
                 class_weight="balanced",
             )
@@ -170,73 +173,106 @@ class Trainer:
             model.fit(X_norm, y)
             self.models[col] = model
 
-        save_obj = {
-            "models": self.models,
-            "normalizer": self.normalizer,
-            "label_cols": LABEL_COLS,
-        }
+        os.makedirs(os.path.dirname(MODEL_PATH), exist_ok=True)
+        with open(MODEL_PATH, "wb") as f:
+            pickle.dump({"svm": self.models, "normalizer": self.normalizer}, f)
 
-        os.makedirs(os.path.dirname(MODEL_FILE), exist_ok=True)
-        with open(MODEL_FILE, "wb") as f:
-            pickle.dump(save_obj, f)
+        print(f"\nAll models saved to: {MODEL_PATH}")
+        return self.models, self.normalizer
 
-        print(f"\nAll models saved to: {MODEL_FILE}")
+    @staticmethod
+    def load_model(model_path=MODEL_PATH):
+        with open(model_path, "rb") as f:
+            data = pickle.load(f)
+        return data["svm"], data["normalizer"]
 
 
 class Inference:
-    def __init__(self):
-        print(f"Loading model bundle from {MODEL_FILE}")
-        with open(MODEL_FILE, "rb") as f:
-            saved = pickle.load(f)
+    def __init__(self, svm, normalizer):
+        self.model = SentenceTransformer(MODEL_NAME)
+        self.svm = svm  
+        self.normalizer = normalizer
 
-        self.models = saved["models"]
-        self.normalizer = saved["normalizer"]
-        self.label_cols = saved["label_cols"]
+    def predict_file(self, test_file, output_file, test_emb=None):
+        df_test = pd.read_csv(test_file)
+        print(f"Predict on: {len(df_test)} rows")
 
-        self.encoder = SentenceTransformer(MODEL_NAME)
-        print("Loaded SentenceTransformer and SVM models.\n")
+        test_ids = df_test["id"].astype(str).values
 
-    def predict_file_kaggle(self, test_path=TEST_PATH, out_path=SUBMIT_PATH):
+        if test_emb is not None and os.path.exists(test_emb):
+            emb_data = np.load(test_emb, allow_pickle=True)
+            emb_ids = emb_data[:, 0].astype(str)
+            X_full = emb_data[:, 1:].astype(np.float32)
 
-        df_test = pd.read_csv(test_path)
-        print(f"Loaded test file: {test_path}, shape = {df_test.shape}")
+            id2idx = {}
+            for i, emb_id in enumerate(emb_ids):
+                id2idx[emb_id] = i
 
-        texts = df_test["comment_text"].fillna("").tolist()
+            idx = np.empty(len(test_ids), dtype=np.int64)
+            for i, _id in enumerate(test_ids):
+                idx[i] = id2idx[_id]  
 
-        print("Encoding SBERT embeddings for test...")
-        emb = self.encoder.encode(
-            texts,
+            embeddings = X_full[idx]
+            print(f"Loaded embeddings from: {test_emb}")
+            print(f"Embeddings shape: {embeddings.shape}")
+
+        else:
+            print("No test embedding found. Encoding test texts from scratch...")
+            texts = df_test["comment_text"].fillna("").tolist()
+            embeddings = self.model.encode(
+                texts,
+                batch_size=BATCH_SIZE,
+                show_progress_bar=True,
+                convert_to_numpy=True,
+                normalize_embeddings=True,
+            )
+
+        embeddings = self.normalizer.transform(embeddings)
+
+        scores = np.zeros((embeddings.shape[0], len(LABEL_COLS)), dtype=np.float32)
+        for j, label in enumerate(LABEL_COLS):
+            scores[:, j] = self.svm[label].decision_function(embeddings)
+
+        probs = expit(scores)
+
+        result = pd.DataFrame({"id": df_test["id"]})
+        for i, label in enumerate(LABEL_COLS):
+            result[label] = probs[:, i]
+
+        os.makedirs(os.path.dirname(output_file), exist_ok=True)
+        result.to_csv(output_file, index=False)
+        print(f"Saved predictions to: {output_file}")
+        return result
+
+    def predict_single(self, text: str):
+        embedding = self.model.encode(
+            [text],
             convert_to_numpy=True,
             normalize_embeddings=True,
-            batch_size=64,
-            show_progress_bar=True,
         )
+        embedding = self.normalizer.transform(embedding)
 
-        emb_norm = self.normalizer.transform(emb)
+        scores = np.zeros(len(LABEL_COLS), dtype=np.float32)
+        for j, label in enumerate(LABEL_COLS):
+            scores[j] = self.svm[label].decision_function(embedding)[0]
 
-        preds = np.zeros((len(df_test), len(self.label_cols)),
-                         dtype=np.float32)
+        probs = expit(scores)
 
-        for j, col in enumerate(self.label_cols):
-            print(f"Predicting (scores) for label: {col}")
-            scores = self.models[col].decision_function(emb_norm)
-            probs = expit(scores)
-            preds[:, j] = probs
-
-        out = pd.DataFrame({"id": df_test["id"]})
-        for j, col in enumerate(self.label_cols):
-            out[col] = preds[:, j]
-
-        os.makedirs(os.path.dirname(out_path), exist_ok=True)
-        out.to_csv(out_path, index=False)
-        print(f"\nSaved KAGGLE-style predictions to: {out_path}")
-
-        return out
+        print("LABEL\t\tSCORE")
+        print("-" * 25)
+        for label, score in zip(LABEL_COLS, probs):
+            print(f"{label:<15}\t{score:.4f}")
 
 
 if __name__ == "__main__":
-    trainer = Trainer()
-    trainer.train_all()
-
-    infer = Inference()
-    infer.predict_file_kaggle(TEST_PATH, SUBMIT_PATH)
+    not_retrain = False  # True -> load existing model if available
+    if os.path.exists(MODEL_PATH) and not_retrain:
+        svm, normalizer = Trainer.load_model(MODEL_PATH)
+        print(f"Loaded model: {MODEL_PATH}")
+    else:
+        trainer = Trainer()
+        trainer.train_all()
+        svm, normalizer = Trainer.load_model(MODEL_PATH)
+    inference = Inference(svm, normalizer)
+    inference.predict_file(TEST_PATH, RES_PATH, TEST_EMB_PATH)
+    print(f"saved {RES_PATH}")
