@@ -11,7 +11,7 @@ The system includes a robust NLP preprocessing pipeline, vector-based text embed
 - Robust preprocessing: regex normalization, text standardization (`<URL>`, `<DATE>`, etc.), deduplication.
 - High-quality text embeddings using **all-distilroberta-v1**.
 - SVM classifier using **scikit-learn** achieving **97% accuracy** on Kaggle.
-- Custom SVM implemented from scratch achieving **95% accuracy**.
+- Custom SVM implemented from scratch achieving **97% accuracy**.
 - Experimental evaluation using **GPT-5** for zero-shot & few-shot classification.
 
 ---
