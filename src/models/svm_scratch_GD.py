@@ -7,7 +7,7 @@ from sentence_transformers import SentenceTransformer
 from sklearn.preprocessing import Normalizer
 from scipy.special import expit
 
-os.chdir('..')
+os.chdir("..")
 
 EMB_PATH = "./data/embeddings/train.npy"
 RAW_PATH = "./data/processed/train.csv"
@@ -15,8 +15,7 @@ TEST_PATH = "./data/processed/test.csv"
 SUBMIT_PATH = "./data/output/submit_scratch_GD.csv"
 MODEL_FILE = "./data/output/svm_model_GD.pkl"
 MODEL_NAME = "sentence-transformers/all-distilroberta-v1"
-LABEL_COLS = ["toxic", "severe_toxic", "obscene",
-              "threat", "insult", "identity_hate"]
+LABEL_COLS = ["toxic", "severe_toxic", "obscene", "threat", "insult", "identity_hate"]
 
 
 class SVM_classifier:
@@ -97,9 +96,8 @@ class SVM_classifier:
 
                     sw_sum = np.sum(sw_batch)
 
-                    grad_w_hinge = - \
-                        (X_mis.T @ (sw_mis * y_mis)) / max(sw_sum, 1e-8)
-                    grad_b_hinge = - np.sum(sw_mis * y_mis) / max(sw_sum, 1e-8)
+                    grad_w_hinge = -(X_mis.T @ (sw_mis * y_mis)) / max(sw_sum, 1e-8)
+                    grad_b_hinge = -np.sum(sw_mis * y_mis) / max(sw_sum, 1e-8)
 
                     grad_w = self.lambda_parameter * self.w + grad_w_hinge
                     grad_b = grad_b_hinge
@@ -135,8 +133,7 @@ class Trainer:
         print(f"Loaded raw train from {RAW_PATH}, shape = {raw_data.shape}")
 
         df_emb = pd.DataFrame({"id": ids, "emb_idx": np.arange(len(ids))})
-        df_merged = raw_data[["id"] +
-                             LABEL_COLS].merge(df_emb, on="id", how="inner")
+        df_merged = raw_data[["id"] + LABEL_COLS].merge(df_emb, on="id", how="inner")
 
         matched_indices = df_merged["emb_idx"].values
         X = X_full[matched_indices]
@@ -214,8 +211,7 @@ class Inference:
 
         emb_norm = self.normalizer.transform(emb)
 
-        preds = np.zeros((len(df_test), len(self.label_cols)),
-                         dtype=np.float32)
+        preds = np.zeros((len(df_test), len(self.label_cols)), dtype=np.float32)
 
         for j, col in enumerate(self.label_cols):
             print(f"Predicting (scores) for label: {col}")
