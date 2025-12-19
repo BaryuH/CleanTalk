@@ -81,7 +81,7 @@ svm.fit(X_train, y_train)
 
 ### **2. Custom SVM (from scratch)**  
 A hand-built implementation for learning purposes.  
-Achieved **95% accuracy** with efficient inference.
+Achieved **97% accuracy** with efficient inference.
 
 ---
 
@@ -102,7 +102,7 @@ This module is exploratory and showcases traditional ML vs modern LLM behavior.
 | Model                   | Accuracy |
 |------------------------|----------|
 | SVM (scikit-learn)     | **97%**  |
-| Custom SVM (scratch)   | **95%**  |
+| Custom SVM (scratch)   | **97%**  |
 | GPT-5 Zero-shot        | TBD      |
 | GPT-5 Few-shot         | TBD      |
 
