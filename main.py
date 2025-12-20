@@ -1,24 +1,15 @@
 import os
+import re
+import unicodedata
 import numpy as np
-import joblib
-from tqdm import tqdm
-from scipy.special import expit
-from src.utils.preprocess import preprocess
-from sentence_transformers import SentenceTransformer
+from pathlib import Path
 
-os.chdir('.')
-print(os.getcwd())
-
-LABELS = ["toxic", "severe_toxic", "obscene",
-          "threat", "insult", "identity_hate"]
-
-MODEL_PATH = './data/output/svm_model.pkl'
-MODEL_NAME = 'sentence-transformers/all-distilroberta-v1'
+from src.models.svm import Trainer as LibTrainer, Inference as LibInference
 
 
-MODEL_PATH = './data/output/svm_model.pkl'
-MODEL_NAME = 'sentence-transformers/all-distilroberta-v1'
+LABELS = ["toxic", "severe_toxic", "obscene", "threat", "insult", "identity_hate"]
 
+LIB_MODEL_PATH = "./data/output/svm_model.pkl"
 
 weights = {
     "toxic": 1,
@@ -26,24 +17,58 @@ weights = {
     "insult": 1,
     "severe_toxic": 3,
     "identity_hate": 3,
-    "threat": 4
+    "threat": 4,
 }
 
 SAFE_MAX = 2
 WARNING_MAX = 4
 
 
+def preprocess(text: str) -> str:
+    text = text.lower()
+    text = unicodedata.normalize("NFKC", text)
+    text = re.sub(r"[^a-zA-Z0-9\s.,!?'\-\"<>\[\]()/#&:%]", "", text)
+    text = text.replace("\t", " ")
+    text = re.sub(r"\s+", " ", text)
+    text = re.sub(r"\s*\(\s*\)\s*", " ", text)
+    text = re.sub(r"\s@\s*", " ", text)
+    text = re.sub(r"http\S+", "<URL>", text)
+    text = re.sub(r"\S+@\S+", "<EMAIL>", text)
+    text = re.sub(r"@\w+", "<USER>", text)
+    text = re.sub(r"\b\d{1,3}(?:\.\d{1,3}){3}\b", "<IP>", text)
+    text = re.sub(r"([!?.,;:\"\'])\1+", r"\1", text)
+    text = re.sub(r"([A-Za-z])\1{2,}", r"\1", text)
+    text = re.sub(r"([A-Za-z])\1{1}", r"\1\1", text)
+
+    time_pattern = re.compile(
+        r"""
+        (?:
+            \b\d{1,2}[\/\-.]\d{1,2}[\/\-.]\d{2,4}\b
+            | \b\d{4}[\/\-.]\d{1,2}[\/\-.]\d{1,2}\b
+            | \b\d{1,2}\s*(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*[\s,]*\d{2,4}\b
+            | \b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s*\d{1,2},?\s*\d{2,4}\b
+        )
+        (?:\s*\(?(?:UTC|GMT|PST|EST|CET|IST)\)?)?
+        | \b\d{1,2}:\d{2}(?::\d{2})?\s*(?:AM|PM|UTC|GMT)?\b
+        """,
+        flags=re.IGNORECASE | re.VERBOSE,
+    )
+
+    text = re.sub(time_pattern, "<DATE>", text)
+    text = re.sub(r"\"\s+", "", text)
+    return text.strip()
+
+
 def compute_points(pred_vector):
     total = 0
     for label, value in zip(LABELS, pred_vector):
-        if value == 1:
+        if int(value) == 1:
             total += weights[label]
     return total
 
 
 def classify(points, pred_vector):
-
-    toxic, severe_toxic, obscene,  threat,  insult,  identity_hate, = pred_vector
+    toxic, severe_toxic, obscene, threat, insult, identity_hate = pred_vector
 
     light_count = int(toxic) + int(obscene) + int(insult)
     heavy_count = int(severe_toxic) + int(identity_hate) + int(threat)
@@ -67,59 +92,49 @@ def classify(points, pred_vector):
     return "ban"
 
 
-def main():
-    print("Loading embedding model and SVM model...")
-    encoder = SentenceTransformer(MODEL_NAME)
-    svm_model = joblib.load(MODEL_PATH)['svm']
-    print("Loaded successfully!\n")
+def print_single(a):
+    a_bins = np.asarray(a["bins"], dtype=int)
 
-    print("Nhập câu tiếng Anh để kiểm tra toxicity.")
-    print("Gõ 'quit' / 'exit' để thoát.\n")
+    a_points = compute_points(a_bins)
+    a_final = classify(a_points, a_bins)
+
+    print("\n========= RESULT ===========")
+    print("label           score     bin")
+    for lab, s, b in zip(LABELS, a["scores"], a_bins):
+        print(f"{lab:14s} {float(s):7.4f}    {int(b)}")
+
+    print(f"\nPoints: {a_points} | Final: {a_final.upper()}")
+    print("============================\n")
+
+
+def main():
+    root = Path(__file__).resolve().parent
+    os.chdir(root)
+
+    svm_a, norm_a = LibTrainer.load_model(LIB_MODEL_PATH)
+    infer_a = LibInference(svm_a, norm_a)
+
+    print("CleanTalk - CLI inference")
 
     while True:
+        print("Type 'quit' / 'exit' / 'q' to stop.\n")
         text = input(">> Enter comment: ").strip()
-
         if text.lower() in ["quit", "exit", "q"]:
             print("Bye!")
             break
-
         if not text:
-            print("Empty input, thử lại.\n")
+            print("Empty input, again.\n")
             continue
 
         text_proc = preprocess(text)
-        emb = encoder.encode([text_proc])
 
-        n_samples = emb.shape[0]
-        n_labels = len(LABELS)
-        scores = np.zeros((n_samples, n_labels), dtype=np.float32)
-        raw_scores = np.zeros((n_samples, n_labels), dtype=float)
+        a = infer_a.predict_single(text_proc)
 
-        for i, est in enumerate(svm_model.estimators_):
-            score = est.decision_function(emb)[0]
-            raw_scores[:, i] = score
-            scores[:, i] = 1 if expit(score) >= 0.5 else 0
-
-        scores = np.array(scores, dtype=int)
-        pred_vector = scores[0]
-        points = compute_points(pred_vector)
-        final_label = classify(points, pred_vector)
-
-        print("\n===== RESULT =====")
+        print("\n========== INPUT ===========")
         print(f"Original: {text}")
         print(f"Preproc : {text_proc}")
-        print("Raw scores (decision_function):")
 
-        for label, value in zip(LABELS, raw_scores[0]):
-            print(f"  {label:13s}: {value:.4f}")
-
-        print("Labels (0 = no, 1 = yes):")
-        for label, value in zip(LABELS, pred_vector):
-            print(f"  {label:13s}: {int(value)}")
-
-        print(f"\nPoints: {points}")
-        print(f"Final label: {final_label.upper()}")
-        print("====================\n")
+        print_single(a)
 
 
 if __name__ == "__main__":
