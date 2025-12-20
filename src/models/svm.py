@@ -13,6 +13,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 os.chdir(ROOT)
 
+
 TRAIN_EMB_PATH = "./data/embeddings/train.npy"
 TEST_EMB_PATH = "./data/embeddings/test.npy"
 RAW_PATH = "./data/processed/train.csv"
