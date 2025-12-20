@@ -16,7 +16,7 @@ os.chdir(ROOT)
 TRAIN_EMB_PATH = "./data/embeddings/train.npy"
 TEST_EMB_PATH = "./data/embeddings/test.npy"
 RAW_PATH = "./data/processed/train.csv"
-TEST_PATH = "./data/processed/test2.csv"
+TEST_PATH = "./data/processed/test.csv"
 RES_PATH = "./data/output/submit_lib.csv"
 MODEL_PATH = "./data/output/svm_model.pkl"
 MODEL_NAME = "sentence-transformers/all-distilroberta-v1"
@@ -163,7 +163,8 @@ if __name__ == "__main__":
         X, y = trainer.load_data()
         trainer.preprocess(X, y)
         svm, normalizer = trainer.train()
+    # Uncomment for predicting file
+    # inference = Inference(svm, normalizer)
+    # inference.predict_file(TEST_PATH, RES_PATH, TEST_EMB_PATH)
+    # print(f"saved {RES_PATH}")
 
-    inference = Inference(svm, normalizer)
-    inference.predict_file(TEST_PATH, RES_PATH, TEST_EMB_PATH)
-    print(f"saved {RES_PATH}")

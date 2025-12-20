@@ -8,12 +8,12 @@ from sklearn.preprocessing import Normalizer
 from scipy.special import expit
 from pathlib import Path
 
-# ROOT = Path(__file__).resolve().parents[2]
-# os.chdir(ROOT)
+ROOT = Path(__file__).resolve().parents[2]
+os.chdir(ROOT)
 
 TRAIN_EMB_PATH = "./data/embeddings/train.npy"
 RAW_PATH = "./data/processed/train.csv"
-TEST_PATH = "./data/processed/test2.csv"
+TEST_PATH = "./data/processed/test.csv"
 TEST_EMB_PATH = "./data/embeddings/test.npy"
 RES_PATH = "./data/output/submit_SGD.csv"
 MODEL_PATH = "./data/output/svm_sgd_model.pkl"
@@ -286,7 +286,7 @@ if __name__ == "__main__":
         trainer = Trainer()
         trainer.train()
         svm, normalizer = Trainer.load_model(MODEL_PATH)
-
+    # Uncomment for predicting file
     # inference = Inference(svm, normalizer)
     # inference.predict_file(TEST_PATH, RES_PATH, TEST_EMB_PATH)
     # print(f"saved {RES_PATH}")
