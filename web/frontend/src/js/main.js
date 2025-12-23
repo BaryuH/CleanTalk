@@ -1,12 +1,11 @@
 const TOXICITY_API_URL = "/api/v1/CleanTalk1";
-//const TOXICITY_API_URL = "http://localhost:8000/api/v1/CleanTalk1";
-
+// const TOXICITY_API_URL = "http://localhost:8000/api/v1/CleanTalk1";
 
 
 const LABEL_IMAGES = {
-  SAFE: "./images/safe.jpg",
-  WARNING: "./images/warning.webp",
-  BAN: "./images/ban.png"
+  SAFE: "/images/safe.jpg",
+  WARNING: "/images/warning.webp",
+  BAN: "/images/ban.png"
 };
 
 class ThemeManager {
@@ -162,6 +161,7 @@ class ToxicityAnalyzer {
     const detectedLabels = Object.entries(labelsObj)
       .filter(([, v]) => v === 1 || v === true)
       .map(([key]) => key);
+
     this.chipsContainer.innerHTML = "";
     if (detectedLabels.length > 0) {
       this.issuesSection.style.display = "flex";
@@ -179,6 +179,7 @@ class ToxicityAnalyzer {
       this.issuesSection.style.display = "none";
       this.noIssuesMessage.classList.remove("hidden");
     }
+
     this.showResultContent();
   }
 
@@ -224,6 +225,7 @@ class ToxicityAnalyzer {
     }
   }
 }
+
 function preloadImages(urls) {
   urls.forEach((url) => {
     const img = new Image();
@@ -232,12 +234,14 @@ function preloadImages(urls) {
 }
 
 window.addEventListener("DOMContentLoaded", () => {
-  preloadImages(Object.values(IMAGE_MAP));
+  preloadImages(Object.values(LABEL_IMAGES));
 });
+
 document.addEventListener("DOMContentLoaded", () => {
   new ThemeManager();
   new CharacterCounter();
   new ToxicityAnalyzer();
+
   document.querySelectorAll(".sample-btn").forEach(btn => {
     btn.addEventListener("click", () => {
       const text = btn.getAttribute("data-text");
