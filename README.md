@@ -1,167 +1,119 @@
-# Clean Talk – Toxic Comment Classification
+# CleanTalk — Multi-Label Toxic Comment Detection System
 
-Clean Talk is a machine learning project that classifies toxic comments using the Jigsaw dataset on Kaggle.  
-The system includes a robust NLP preprocessing pipeline, vector-based text embeddings, traditional ML modeling (SVM), and experimental LLM-based few-shot & zero-shot evaluation.
+CleanTalk is a **multi-label toxic comment detection system** designed to identify and classify harmful user-generated content (UGC) such as toxic, abusive, or offensive comments.  
+The project combines **modern NLP sentence embeddings** with **traditional machine learning (SVM)** and includes both **library-based** and **from-scratch implementations** for learning and comparison purposes.
 
----
-
-## 🚀 Features
-
-- End-to-end toxic comment classification system.
-- Robust preprocessing: regex normalization, text standardization (`<URL>`, `<DATE>`, etc.), deduplication.
-- High-quality text embeddings using **all-distilroberta-v1**.
-- SVM classifier using **scikit-learn** achieving **97% accuracy** on Kaggle.
-- Custom SVM implemented from scratch achieving **97% accuracy**.
-- Experimental evaluation using **GPT-5** for zero-shot & few-shot classification.
+This repository is intended as a **technical showcase project** for AI / ML engineering, with a clear and modular structure that can be extended to deployment or further research.
 
 ---
 
-## 📂 Project Structure
+## Project Goals
+
+- Build an end-to-end NLP pipeline for toxic comment classification
+- Explore the effectiveness of **Sentence Embeddings + SVM**
+- Implement **custom SVM kernels** to deepen algorithmic understanding
+- Maintain a clean, scalable project structure suitable for real-world systems
+
+---
+
+## Repository Structure
 
 ```
 CleanTalk/
-│
 ├── data/                     # Raw and processed datasets
-├── notebooks/                # Jupyter notebooks for experiments
-├── src/
-│   ├── preprocess.py         # Data cleaning & text normalization
+├── kernel_svm/               # Custom SVM (kernel-based) implementations
+├── notebooks/                # Jupyter notebooks for experimentation
+├── src/                      # Core NLP and ML pipeline
+│   ├── preprocess.py         # Text cleaning & normalization
 │   ├── embed.py              # Sentence embedding generation
 │   ├── svm_sklearn.py        # SVM using scikit-learn
-│   ├── svm_scratch.py        # Custom SVM implementation
-│   ├── gpt_eval.py           # GPT-5 zero-shot / few-shot evaluation
-│   └── utils.py              # Helper functions
-│
-├── models/                   # Saved models & vectors
-├── results/                  # Accuracy reports, logs
-├── requirements.txt
-└── README.md
+│   ├── svm_scratch.py        # SVM implemented from scratch
+│   ├── utils.py              # Helper functions
+│   └── (other modules)
+├── web/                      # Optional web interface / backend
+├── example_SVM.ipynb         # Demonstration notebook
+├── main.py                   # Pipeline entry point
+├── requirements.txt          # Python dependencies
+├── .gitignore
+└── README.md                 # Project documentation
 ```
 
 ---
 
-## 🧹 Preprocessing Pipeline
+## System Pipeline Overview
 
-The preprocessing pipeline includes:
+### 1. Text Preprocessing
+Raw text data is normalized and cleaned to reduce noise and improve downstream model performance.
 
-- Lowercasing  
-- Regex cleaning  
-- Standardizing tokens (`<URL>`, `<DATE>`, `<NUMBER>`)  
-- Reducing character repetition (`"meeeee"` → `"mee"`)  
-- Removing duplicates  
-- Removing non-informative samples  
+Typical steps include:
+- Lowercasing
+- Regex-based cleanup
+- Normalization of URLs, numbers, and special tokens
+- Removal of duplicates and malformed entries
 
-This ensures the embeddings capture meaningful semantic patterns.
+**Goal:** produce clean, semantically meaningful text for embedding.
 
 ---
 
-## 🔡 Text Embeddings
-
-We use **all-distilroberta-v1** (Sentence Transformers) to convert comments into fixed-size embeddings.
+### 2. Sentence Embeddings
+CleanTalk converts text into dense vector representations using **Sentence Transformers**.
 
 ```python
 from sentence_transformers import SentenceTransformer
 
 model = SentenceTransformer("sentence-transformers/all-distilroberta-v1")
-embeddings = model.encode(comments, batch_size=32)
+embeddings = model.encode(texts)
 ```
 
 ---
 
-## 🧠 Model Training
+### 3. Model Training
 
-### **1. SVM (scikit-learn version)**  
-Achieved **97% accuracy** on Kaggle.
+#### a) SVM with scikit-learn
+- Linear SVM for multi-label classification
+- Fast training and inference
+- Strong baseline for text classification with dense embeddings
 
-```python
-from sklearn.svm import LinearSVC
-
-svm = LinearSVC()
-svm.fit(X_train, y_train)
-```
-
-### **2. Custom SVM (from scratch)**  
-A hand-built implementation for learning purposes.  
-Achieved **97% accuracy** with efficient inference.
+#### b) Custom SVM (from scratch)
+Located in `kernel_svm/`, this implementation reimplements SVM optimization logic manually and supports kernel-based experimentation.
 
 ---
 
-## 🤖 LLM Evaluation (GPT-5)
-
-We also test zero-shot & few-shot classification using the GPT-5 API:
-
-- Zero-shot toxicity classification  
-- 3-shot prompt templates  
-- Performance comparison against SVM baselines  
-
-This module is exploratory and showcases traditional ML vs modern LLM behavior.
+### 4. Optional Web Interface
+The `web/` directory is reserved for potential deployment such as REST APIs or moderation UIs.
 
 ---
 
-## 📊 Results
-
-| Model                   | Accuracy |
-|------------------------|----------|
-| SVM (scikit-learn)     | **97%**  |
-| Custom SVM (scratch)   | **97%**  |
-| GPT-5 Zero-shot        | TBD      |
-| GPT-5 Few-shot         | TBD      |
-
----
-
-## 🛠 Tech Stack
-
-- **Python**
-- **scikit-learn**
-- **Sentence Transformers**
-- **NumPy / Pandas**
-- **OpenAI GPT-5 API**
-- **Regex-based preprocessing**
-
----
-
-## 📦 Installation
+## Installation
 
 ```bash
-git clone https://github.com/gitHuyNgo/CleanTalk
+git clone https://github.com/gitHuyNgo/CleanTalk.git
 cd CleanTalk
 pip install -r requirements.txt
 ```
 
 ---
 
-## ▶️ Usage
+## Usage
 
-### Preprocess data:
 ```bash
-python src/preprocess.py
-```
-
-### Generate embeddings:
-```bash
-python src/embed.py
-```
-
-### Train SVM (scikit-learn):
-```bash
-python src/svm_sklearn.py
-```
-
-### Train custom SVM:
-```bash
-python src/svm_scratch.py
-```
-
-### Evaluate with GPT-5:
-```bash
-python src/gpt_eval.py
+python main.py
 ```
 
 ---
 
-## 📌 Future Improvements
+## Dependencies
 
-- Deploy model with FastAPI  
-- Add web UI for real-time classification  
-- Improve GPT-5 evaluation metrics  
-- Add adversarial toxicity detection  
-- Enhance data augmentation pipeline  
+- scikit-learn
+- sentence-transformers
+- numpy
+- pandas
+
+---
+
+## Future Work
+
+- Add FastAPI-based inference service
+- Introduce real-time moderation UI
+- Improve evaluation metrics and logging
+- Compare against fine-tuned transformer models
