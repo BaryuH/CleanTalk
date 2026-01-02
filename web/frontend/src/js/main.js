@@ -1,11 +1,11 @@
-const TOXICITY_API_URL = "/api/v1/CleanTalk1";
-// const TOXICITY_API_URL = "http://localhost:8000/api/v1/CleanTalk1";
+//const TOXICITY_API_URL = "/api/v1/CleanTalk1";
+const TOXICITY_API_URL = "http://localhost:8000/api/v1/CleanTalk1";
 
 
 const LABEL_IMAGES = {
-  SAFE: "/images/safe.jpg",
-  WARNING: "/images/warning.webp",
-  BAN: "/images/ban.png"
+  SAFE: "./images/safe.jpg",
+  WARNING: "./images/warning.webp",
+  BAN: "./images/ban.png"
 };
 
 class ThemeManager {

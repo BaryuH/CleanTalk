@@ -70,7 +70,7 @@ body {
 .logo-glow {
   width: 80px;
   height: 80px;
-  background-image: url("/images/logo.png");
+  background-image: url("/web/frontend/public/images/logo.png");
   background-size: 70%;
   background-repeat: no-repeat;
   background-position: center;
