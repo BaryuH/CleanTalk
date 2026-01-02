@@ -89,25 +89,53 @@ The `web/` directory is reserved for potential deployment such as REST APIs or m
 ```bash
 git clone https://github.com/gitHuyNgo/CleanTalk.git
 cd CleanTalk
+python -m venv .venv
+.venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
 ---
 
 ## Usage
-
+### CleanTalk
+#### Prepare Data
+Change direction to `CleanTalk/src/data`
 ```bash
-python main.py
+cd CleanTalk/src/data
+python preprocess.py
+python embeddings.py --inp "./data/processed/train.csv" --out "./data/embeddings/train.npy"
+python embeddings.py --inp "./data/processed/test.csv"  --out "./data/embeddings/test.npy"
+```
+---
+#### Train Model
+Change direction to `CleanTalk/src/models`
+```bash
+cd CleanTalk/src/models
+# Train Linear SVM using scikit-learn
+python svm.py              # Uncomment prediction code in main() for Kaggle submission
+# Train Soft Margin SVM implemented from scratch (Pegasos SVM)
+python svm_scratch_SGD.py  # Uncomment prediction code in main() for Kaggle submission
+```
+---
+#### Main CleanTalk Webpage
+Change direction to `CleanTalk/web`
+```bash
+cd CleanTalk/web
+pip install -r requirements.txt
+# Copy the trained model from output to the backend model store:
+cp PATH/CleanTalk/data/output/svm_model.pkl backend/models_store/CleanTalk1/
+# Turn on the backend server:
+cd backend
+uvicorn app.main:app --host 0.0.0.0 --port 8000
+# Open the frontend UI by following this link:
+http://127.0.0.1:3000/web/frontend/public/index.html
 ```
 
----
-
-## Dependencies
-
-- scikit-learn
-- sentence-transformers
-- numpy
-- pandas
+### Draw Digit 
+Change direction to CleanTalk/kernel_svm
+```bash
+python draw_digit_app.py
+```
 
 ---
 

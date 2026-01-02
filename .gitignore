@@ -12,6 +12,7 @@ __pycache__/
 # VIRTUAL ENVIRONMENT
 ############################################
 venv/
+.env
 .env/
 .env.local
 .env.development
