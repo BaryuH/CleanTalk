@@ -1,6 +1,10 @@
 # CleanTalk — Multi-Label Toxic Comment Detection System
 
-CleanTalk is a **multi-label toxic comment detection system** designed to identify and classify harmful user-generated content (UGC) such as toxic, abusive, or offensive comments.  
+<p align="center">
+  <img src="assets/logo.png" alt="CleanTalk Logo" width="400">
+</p>
+
+**CleanTalk** is a **multi-label toxic comment detection system** designed to identify and classify harmful user-generated content (UGC) such as toxic, abusive, or offensive comments.  
 The project combines **modern NLP sentence embeddings** with **traditional machine learning (SVM)** and includes both **library-based** and **from-scratch implementations** for learning and comparison purposes.
 
 This repository is intended as a **technical showcase project** for AI / ML engineering, with a clear and modular structure that can be extended to deployment or further research.
@@ -161,6 +165,10 @@ python -m http.server 3000
 # Copy this and paste in your web browser
 http://127.0.0.1:3000/web/frontend/public/index.html
 ```
+
+<p align="center">
+  <img src="assets/demo.png" alt="CleanTalk Demo" width="1000">
+</p>
 
 ### Draw Digit
 
