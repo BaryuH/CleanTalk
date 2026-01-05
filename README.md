@@ -163,7 +163,7 @@ http://127.0.0.1:3000/web/frontend/public/index.html
 
 ### Draw Digit
 
-Change direction to `CleanTalk/kernel_svm`
+Change direction to `CleanTalk/KernelSVM`
 
 ```bash
 python draw_digit_app.py
