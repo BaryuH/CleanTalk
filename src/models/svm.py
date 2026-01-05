@@ -34,8 +34,7 @@ BATCH_SIZE = 128
 
 GRID_LOG_DIR = "./data/output"
 GRID_LOG_PATH = os.path.join(
-    GRID_LOG_DIR,
-    f"linearsvc_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
+    GRID_LOG_DIR, f"linearsvc_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
 )
 
 
@@ -129,7 +128,11 @@ class Trainer:
 
                     if val_acc > best_val:
                         best_val = val_acc
-                        best_params = {"C": float(C), "max_iter": int(it), "class_weight": cw}
+                        best_params = {
+                            "C": float(C),
+                            "max_iter": int(it),
+                            "class_weight": cw,
+                        }
                         best_model = clf
 
         self._log("\n>>> BEST PARAMS")
@@ -142,8 +145,8 @@ class Trainer:
     def train(self):
         self._log("\n===== TRAINING =====")
         C_grid = [0.05, 0.1, 0.2, 0.25, 0.4]
-        max_iter_grid = [500, 1000, 2000, 4000]
-        class_weight_grid = [None, "balanced"]
+        max_iter_grid = [1000]
+        class_weight_grid = ["balanced"]
 
         best_model, best_params, best_val = self.grid_search_linearsvc(
             C_grid, max_iter_grid, class_weight_grid
@@ -167,6 +170,7 @@ class Trainer:
         self._log(f"\nModel saved: {MODEL_PATH}")
         self._log(f"Grid log saved: {GRID_LOG_PATH}")
         return self.svm, self.normalizer
+
     @staticmethod
     def load_model(model_path=MODEL_PATH):
         with open(model_path, "rb") as f:
@@ -242,7 +246,7 @@ class Inference:
 
 
 if __name__ == "__main__":
-    not_retrain = True
+    not_retrain = False
     if os.path.exists(MODEL_PATH) and not_retrain:
         svm, normalizer = Trainer.load_model(MODEL_PATH)
         print(f"Loaded model: {MODEL_PATH}")
