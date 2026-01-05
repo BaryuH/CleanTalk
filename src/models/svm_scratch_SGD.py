@@ -2,6 +2,7 @@ import os
 import numpy as np
 import pandas as pd
 import pickle
+from datetime import datetime
 from sentence_transformers import SentenceTransformer
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import Normalizer
@@ -10,7 +11,6 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 os.chdir(ROOT)
-
 
 TRAIN_EMB_PATH = "./data/embeddings/train.npy"
 RAW_PATH = "./data/processed/train.csv"
@@ -24,11 +24,16 @@ LABEL_COLS = ["toxic", "severe_toxic", "obscene", "threat", "insult", "identity_
 TEST_SIZE = 0.2
 RANDOM_STATE = 42
 BATCH_SIZE = 128
+
 LAMBDA_PARAM = 1e-4
 N_EPOCHS = 30
 BATCH_SIZE_SVM = 200
 SHUFFLE = True
-
+GRID_LOG_DIR = "./data/output"
+GRID_LOG_PATH = os.path.join(
+    GRID_LOG_DIR,
+    f"pegasos_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
+)
 
 class PegasosSVM:
     def __init__(self, lambda_param=1e-4, n_epochs=20, batch_size=200, shuffle=True):
@@ -104,6 +109,20 @@ class Trainer:
         self.y_train = None
         self.y_val = None
 
+        os.makedirs(GRID_LOG_DIR, exist_ok=True)
+        self.log_fp = open(GRID_LOG_PATH, "w", encoding="utf-8")
+
+    def _log(self, msg: str):
+        print(msg)
+        self.log_fp.write(msg + "\n")
+        self.log_fp.flush()
+
+    def close(self):
+        try:
+            self.log_fp.close()
+        except Exception:
+            pass
+
     def load_data(self):
         emb_data = np.load(TRAIN_EMB_PATH, allow_pickle=True)
         raw_data = pd.read_csv(RAW_PATH)
@@ -118,9 +137,9 @@ class Trainer:
         X = X_full[matched_indices]
         y = df_merged[LABEL_COLS].values.astype(int)
 
-        print(f"Matched: {len(df_merged)}")
-        print(f"X shape: {X.shape}")
-        print(f"y shape: {y.shape}")
+        self._log(f"Matched: {len(df_merged)}")
+        self._log(f"X shape: {X.shape}")
+        self._log(f"y shape: {y.shape}")
         return X, y
 
     def preprocess(self, X, y):
@@ -128,8 +147,8 @@ class Trainer:
         self.X_train, self.X_val, self.y_train, self.y_val = train_test_split(
             X, y, test_size=TEST_SIZE, random_state=RANDOM_STATE
         )
-        print(f"Train: {self.X_train.shape[0]}")
-        print(f"Val:   {self.X_val.shape[0]}")
+        self._log(f"Train: {self.X_train.shape[0]}")
+        self._log(f"Val:   {self.X_val.shape[0]}")
 
     def balance_pos(self, X, y, target_pos_ratio=0.1):
         y = np.asarray(y).ravel()
@@ -150,57 +169,153 @@ class Trainer:
 
         return X[new_idx], y[new_idx]
 
+    @staticmethod
+    def eval_accuracy(svm: PegasosSVM, X, y):
+        scores = svm.decision_function(X)
+        preds = (scores >= 0).astype(int)
+        return float((preds == y).mean())
+
+    def grid_search_pegasos(
+        self,
+        X_train,
+        y_train,
+        X_val,
+        y_val,
+        lambda_list,
+        epoch_list,
+        batch_list,
+        shuffle=True,
+    ):
+        best_val = -1.0
+        best_params = None
+        best_model = None
+
+        # Đảm bảo grid có chứa "best hiện tại"
+        if LAMBDA_PARAM not in lambda_list:
+            lambda_list = list(lambda_list) + [LAMBDA_PARAM]
+        if N_EPOCHS not in epoch_list:
+            epoch_list = list(epoch_list) + [N_EPOCHS]
+        if BATCH_SIZE_SVM not in batch_list:
+            batch_list = list(batch_list) + [BATCH_SIZE_SVM]
+
+        lambda_list = sorted(set(lambda_list))
+        epoch_list = sorted(set(epoch_list))
+        batch_list = sorted(set(batch_list))
+
+        self._log("----- GRID SEARCH START -----")
+        self._log(f"Grid lambdas : {lambda_list}")
+        self._log(f"Grid epochs  : {epoch_list}")
+        self._log(f"Grid batches : {batch_list}")
+
+        for lam in lambda_list:
+            for ep in epoch_list:
+                for bs in batch_list:
+                    svm = PegasosSVM(
+                        lambda_param=lam,
+                        n_epochs=ep,
+                        batch_size=bs,
+                        shuffle=shuffle,
+                    )
+                    svm.fit(X_train, y_train)
+
+                    acc_tr = self.eval_accuracy(svm, X_train, y_train)
+                    acc_val = self.eval_accuracy(svm, X_val, y_val)
+
+                    self._log(
+                        f"lambda={lam:.1e}, epochs={ep:>3}, batch={bs:>4} "
+                        f"=> train_acc={acc_tr:.4f}, val_acc={acc_val:.4f}"
+                    )
+
+                    if (acc_val > best_val) or (acc_val == best_val and acc_tr > self.eval_accuracy(best_model, X_train, y_train) if best_model is not None else False):
+                        best_val = acc_val
+                        best_params = (lam, ep, bs)
+                        best_model = svm
+
+        self._log("----- GRID SEARCH END -----")
+        self._log(
+            f">>> BEST: lambda={best_params[0]}, epochs={best_params[1]}, "
+            f"batch={best_params[2]} | best_val_acc={best_val:.4f}"
+        )
+        return best_model, best_params, best_val
+
     def train(self):
         X, y = self.load_data()
         self.preprocess(X, y)
 
-        print("\n===== TRAINING PEGASOS SVM (FROM SCRATCH, BIAS IN W) =====")
-        print(
-            f"lambda={LAMBDA_PARAM}, epochs={N_EPOCHS}, batch_size={BATCH_SIZE_SVM}\n"
-        )
+        self._log("\n===== TRAINING PEGASOS SVM (GRID SEARCH) =====")
+        self._log(f"Log file: {GRID_LOG_PATH}\n")
+
+        lambda_grid = [1e-6, 1e-5, 1e-4, 1e-3]  
+        epoch_grid = [10, 20, 30, 40, 50]           
+        batch_grid = [100, 200, 300, 400, 500]            
+
+        label_best_summary = {}
 
         for j, col in enumerate(LABEL_COLS):
-            print(f"--- Training label: {col} ---")
+            self._log(f"\n=== LABEL: {col} ===")
             y_col_train = self.y_train[:, j]
+            y_col_val = self.y_val[:, j]
 
             true_pos_rate = float(y_col_train.mean())
-            print(f"  true 1-rate (raw train) = {true_pos_rate:.4f}")
+            self._log(f"true 1-rate (raw train) = {true_pos_rate:.6f}")
 
             target_pos_ratio = float(np.clip(true_pos_rate * 20.0, 0.05, 0.30))
-            print(f"  using target_pos_ratio  = {target_pos_ratio:.3f}")
+            self._log(f"using target_pos_ratio  = {target_pos_ratio:.3f}")
 
             X_bal, y_bal = self.balance_pos(
                 self.X_train, y_col_train, target_pos_ratio=target_pos_ratio
             )
+            self._log(f"balanced train size     = {X_bal.shape[0]}")
 
-            svm = PegasosSVM(
-                lambda_param=LAMBDA_PARAM,
-                n_epochs=N_EPOCHS,
-                batch_size=BATCH_SIZE_SVM,
+            best_svm, best_params, best_val = self.grid_search_pegasos(
+                X_bal,
+                y_bal,
+                self.X_val,
+                y_col_val,
+                lambda_grid,
+                epoch_grid,
+                batch_grid,
                 shuffle=SHUFFLE,
             )
-            svm.fit(X_bal, y_bal)
-            self.models[col] = svm
+            self.models[col] = best_svm
+            label_best_summary[col] = {
+                "lambda": float(best_params[0]),
+                "epochs": int(best_params[1]),
+                "batch": int(best_params[2]),
+                "val_acc": float(best_val),
+            }
 
-            scores_train = svm.decision_function(self.X_train)
+            scores_train = best_svm.decision_function(self.X_train)
             preds_train = (scores_train >= 0).astype(int)
             pred_pos_rate = float(preds_train.mean())
             acc_train = float((preds_train == y_col_train).mean())
-
-            print(
-                f"  pred 1-rate (raw train) = {pred_pos_rate:.4f}, train acc = {acc_train:.4f}"
+            self._log(f"raw-train acc(best)     = {acc_train:.4f}")
+            self._log(f"pred 1-rate(raw train)  = {pred_pos_rate:.6f}")
+            self._log(
+                f"score range(raw train)  = [{float(scores_train.min()):.4f}, {float(scores_train.max()):.4f}]"
             )
-            print(
-                f"  score range on train    = [{scores_train.min():.4f}, {scores_train.max():.4f}]\n"
-            )
-
         model_dir = os.path.dirname(MODEL_PATH)
         if model_dir:
             os.makedirs(model_dir, exist_ok=True)
         with open(MODEL_PATH, "wb") as f:
-            pickle.dump({"svm": self.models, "normalizer": self.normalizer}, f)
+            pickle.dump(
+                {
+                    "svm": self.models,
+                    "normalizer": self.normalizer,
+                    "grid_log": GRID_LOG_PATH,
+                    "best_params_by_label": label_best_summary,
+                },
+                f,
+            )
 
-        print(f"All models saved to {MODEL_PATH}")
+        self._log("\n===== SUMMARY (BEST PARAMS BY LABEL) =====")
+        for col, info in label_best_summary.items():
+            self._log(
+                f"{col:>14}: lambda={info['lambda']:.1e}, epochs={info['epochs']}, batch={info['batch']}, val_acc={info['val_acc']:.4f}"
+            )
+
+        self._log(f"\nAll models saved to {MODEL_PATH}")
+        self._log(f"Grid log saved to {GRID_LOG_PATH}")
 
     @staticmethod
     def load_model(model_path=MODEL_PATH):
@@ -285,8 +400,12 @@ if __name__ == "__main__":
         print(f"Loaded model: {MODEL_PATH}")
     else:
         trainer = Trainer()
-        trainer.train()
+        try:
+            trainer.train()
+        finally:
+            trainer.close()
         svm, normalizer = Trainer.load_model(MODEL_PATH)
+
     # Uncomment for predicting file
     # inference = Inference(svm, normalizer)
     # inference.predict_file(TEST_PATH, RES_PATH, TEST_EMB_PATH)
