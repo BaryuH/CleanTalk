@@ -20,22 +20,23 @@ This repository is intended as a **technical showcase project** for AI / ML engi
 
 ```
 CleanTalk/
+├── KernelSVM/                # Kernel-SVM implementations
+├── LinearSVM/                # Linear-SVM implementations
 ├── data/                     # Raw and processed datasets
-├── kernel_svm/               # Custom SVM (kernel-based) implementations
 ├── notebooks/                # Jupyter notebooks for experimentation
 ├── src/                      # Core NLP and ML pipeline
 │   ├── preprocess.py         # Text cleaning & normalization
 │   ├── embed.py              # Sentence embedding generation
-│   ├── svm_sklearn.py        # SVM using scikit-learn
-│   ├── svm_scratch.py        # SVM implemented from scratch
+│   ├── svm.py                # SVM using scikit-learn (LinearSVC)
+│   ├── svm_scratch_SGD.py    # SVM implemented from scratch
 │   ├── utils.py              # Helper functions
 │   └── (other modules)
 ├── web/                      # Optional web interface / backend
-├── example_SVM.ipynb         # Demonstration notebook
 ├── main.py                   # Pipeline entry point
 ├── requirements.txt          # Python dependencies
 ├── .gitignore
-└── README.md                 # Project documentation
+├── README.md                 # Project documentation
+└── REPORT_INSTRUCTION.md     # CS115 Report instruction
 ```
 
 ---
